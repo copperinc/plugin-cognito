@@ -1,0 +1,46 @@
+{
+  "name": "macro-cognito-user-pool",
+  "version": "1.0.0",
+  "description": "Architect (arc.codes) serverless framework macro that defines Cognito User Pools and associated Lambdas triggered by the Rules",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/copperinc/macro-cognito-user-pool.git"
+  },
+  "keywords": [
+    "serverless",
+    "arc",
+    "cloudformation"
+  ],
+  "author": "Copper Inc.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/copperinc/macro-cognito-user-pool/issues"
+  },
+  "homepage": "https://github.com/copperinc/macro-cognito-user-pool#readme",
+  "devDependencies": {
+    "@architect/eslint-config": "^1.0.0",
+    "eslint": "^7.17.0"
+  },
+  "eslintConfig": {
+    "extends": "@architect/eslint-config",
+    "rules": {
+      "indent": [
+        "error",
+        4
+      ],
+      "semi": [
+        "error",
+        "always"
+      ]
+    }
+  },
+  "dependencies": {
+    "@architect/inventory": "^1.2.2",
+    "@architect/package": "^6.0.4",
+    "@architect/utils": "^2.0.4"
+  }
+}
