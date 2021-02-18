@@ -25,13 +25,25 @@ Pools](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-id
           StandardAttributes name phone_number
           RecoveryOptions verified_phone_number
 
-    The full list of available User Pool properties supported by this macro are
-    listed below.
+    [The full list of available User Pool properties supported by this macro are
+    listed below](#customization).
 4. (optional) If you've added any Lambda triggers to your User Pool definition, run `arc create` to generate your User Pool Lambda trigger functions (under
    `src/cognito`).
 
 5. Edit each trigger Lambda's `index.js` file, just as you would any classic arc
    `@http`, `@events`, etc. function.
+
+## Customization
+
+This macro allows for the customizaion of many, but not all, of the available
+Cognito User Pool attributes and properties provided by the [CloudFormation
+`AWS::Cognito::UserPool`
+template](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html). If you'd like to see support for further attributes, file an issue! Another alternative is that you can always drop in to the CloudFormation template with your own custom [arc macro](https://arc.codes/docs/en/guides/extend/custom-cloudformation) to customize the output of this macro to your heart's desire!
+
+|Property|Description|Example|
+|---|---|---|
+|`<trigger>`|Defines Lambda triggers for your Cognito User Pool. The available trigger names are `CreateAuthChallenge`, `CustomMessage`, `DefineAuthChallenge`, `PostAuthentication`, `PostConfirmation`, `PreAuthentication`, `PreSignUp`, `PreTokenGeneration`, `UserMigration` and `VerifyAuthChallengeResponse`. To define multiple triggers, add one per line under your User Pool definition inside `app.arc`. Each trigger added to your `app.arc`, upon running `arc init`, will create a corresponding trigger Lambda folder under `src/cognito/`. Check out the [AWS documents on how to work with Cognito Lambda Triggers](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html) for more details.|`CreateAuthChallenge`|
+|`RecoveryOptions`|Defines what recovery options a user has if they forget their password. Available options are `admin_only` (admin will have to reset the user's password), `verified_email` (email-based recovery), and `verified_phone_number` (phone-based recovery). A maximum of two options may be specified, and order matters! The first options will be used first, then the second option will be used if that fails. If `admin_only` is specified, any other values will be ignored.|`RecoveryOptions verified_phone_number verified_email`| 
 
 ## Sample Application
 

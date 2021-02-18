@@ -18,6 +18,7 @@ module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging',
             let defn = {
                 Type: 'AWS::Cognito::UserPool',
                 Properties: {
+                    UserPoolName: poolLabel
                 }
             };
             // First lets create Lambdas for Cognito triggers, if present
@@ -52,7 +53,7 @@ module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging',
             }
             if (opts.AutoVerifiedAttributes) {
                 let autoverify = arrayify(opts.AutoVerifiedAttributes);
-                defn.Properties.AutoVerifiedAttributes = autoverify
+                defn.Properties.AutoVerifiedAttributes = autoverify;
             }
             if (opts.SESARN) {
                 defn.Properties.EmailConfiguration = {
@@ -71,6 +72,51 @@ module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging',
                     Required: true,
                     Name: a
                 })));
+            }
+            if (opts.UsernameAttributes) {
+                let attrs = arrayify(opts.UsernameAttributes);
+                defn.Properties.UsernameAttributes = attrs;
+            }
+            if (typeof opts.UsernameCaseSensitive !== 'undefined') {
+                defn.Properties.UsernameConfiguration = {
+                    CaseSensitive: !!(opts.UsernameCaseSensitive)
+                };
+            }
+            // Custom attribute support requires us to inspect the property keys
+            // to see if they start with a particular string
+            let keys = Object.keys(opts);
+            let customAttrs = keys.filter(k => k.indexOf('CustomAttribute:') === 0);
+            if (customAttrs.length) {
+                if (!defn.Properties.Schema) defn.Properties.Schema = [];
+                defn.Properties.Schema = defn.Properties.Schema.concat(customAttrs.map(c => {
+                    let Name = c.split('CustomAttribute:').join('');
+                    let attrs = opts[c];
+                    let type = attrs[0];
+                    let min = attrs[1];
+                    let max = attrs[2];
+                    let Mutable = attrs[3];
+                    let attr = {
+                        AttributeDataType: type,
+                        Mutable,
+                        Name,
+                    };
+                    // for some reason the string/number constraint parameters,
+                    // which are all numbers, need to be defined as strings?
+                    // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-stringattributeconstraints.html
+                    // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-numberattributeconstraints.html
+                    if (type === 'Number') {
+                        attr.NumberAttributeConstraints = {
+                            MinValue: '' + min,
+                            MaxValue: '' + max
+                        };
+                    } else if (type === 'String') {
+                        attr.StringAttributeConstraints = {
+                            MinLength: '' + min,
+                            MaxLength: '' + max
+                        }
+                    }
+                    return attr;
+                }));
             }
             console.log(name, JSON.stringify(defn, null, 2));
             sam.Resources[name] = defn;
