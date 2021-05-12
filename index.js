@@ -28,7 +28,7 @@ module.exports = {
                 let src = join(cwd, 'src', 'cognito', dashCasify(trigger));
                 poolLambdas.push({
                     src,
-                    body: `exports.handler = async function (event) {
+                    body: `exports.handler = function (event) {
     console.log(event);
     return event;
 };`
@@ -47,7 +47,6 @@ module.exports = {
             return opts.find(o => (Array.isArray(o) && o[0] === opt) || (typeof o === 'string' && o === opt));
         }
 
-        console.log(opts);
         let pool = {
             Type: 'AWS::Cognito::UserPool',
             Properties: {
@@ -141,9 +140,7 @@ module.exports = {
                 return attr;
             }));
         }
-        console.log(name, JSON.stringify(pool, null, 2));
         sam.Resources[name] = pool;
-        // console.log(JSON.stringify(sam, null, 2));
         return sam;
     }
 };

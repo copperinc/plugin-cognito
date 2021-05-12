@@ -7,12 +7,12 @@ Pool](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-ide
 
 ## Installation
 
-1. Run: `npm i copperinc/plugin-cognito`
+1. Run: `npm i @copper/plugin-cognito`
 
 2. Then add the following line to the `@plugins` pragma in your Architect project manifest (usually `app.arc`):
 
         @plugins
-        plugins-cognito
+        copper/plugin-cognito
 
 3. Add a new `@cognito` pragma. This will generate a Cognito User Pool in your
    Architect app (and will name it after your app name). The following example

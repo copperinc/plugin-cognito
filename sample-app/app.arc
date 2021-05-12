@@ -8,7 +8,7 @@ get /
 fingerprint true
 
 @plugins
-plugin-cognito
+copper/plugin-cognito
 
 @cognito
 RecoveryOptions verified_email verified_phone_number
