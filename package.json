@@ -1,6 +1,6 @@
 {
   "name": "@copper/plugin-cognito",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Architect (arc.codes) serverless framework plugin that defines a Cognito User Pool and associated Lambdas triggers",
   "main": "index.js",
   "scripts": {
