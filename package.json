@@ -28,6 +28,7 @@
   "eslintConfig": {
     "extends": "@architect/eslint-config",
     "rules": {
+      "brace-style": "off",
       "indent": [
         "error",
         4

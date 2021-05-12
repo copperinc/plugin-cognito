@@ -4,13 +4,14 @@ const defaultFunctionConfig = require('@architect/inventory/src/defaults/functio
 const { join } = require('path');
 const { toLogicalID } = require('@architect/utils');
 
-const triggers = ['CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse'];
-const standardAttributes = ['address', 'birthdate', 'email', 'family_name', 'gender', 'given_name', 'locale', 'middle_name', 'name', 'nickname', 'phone_number', 'picture', 'preferred_username', 'profile', 'zone_info', 'updated_at', 'website'];
+const triggers = [ 'CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse' ];
+const standardAttributes = [ 'address', 'birthdate', 'email', 'family_name', 'gender', 'given_name', 'locale', 'middle_name', 'name', 'nickname', 'phone_number', 'picture', 'preferred_username', 'profile', 'zone_info', 'updated_at', 'website' ];
 
 module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging', inventory) {
     if (arc.cognito) {
         const cwd = inventory.inv._project.src;
         arc.cognito.forEach(cog => {
+            // TODO consider possible types for `cog`: object if sub-props are passed to each user pool or a string if a single pool with no props
             let poolLabel = Object.keys(cog)[0];
             let name = toLogicalID(poolLabel);
             let opts = cog[poolLabel];
@@ -113,7 +114,7 @@ module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging',
                         attr.StringAttributeConstraints = {
                             MinLength: '' + min,
                             MaxLength: '' + max
-                        }
+                        };
                     }
                     return attr;
                 }));
@@ -123,8 +124,8 @@ module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging',
         });
     }
     // console.log(JSON.stringify(sam, null, 2));
-    return sam
-}
+    return sam;
+};
 
 module.exports.create = function CognitoCreate (inventory) {
     const cwd = inventory.inv._project.src;
