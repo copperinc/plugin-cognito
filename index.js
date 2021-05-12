@@ -1,150 +1,34 @@
-const { createLambda } = require('@architect/package/src/visitors/utils');
-const read = require('@architect/inventory/src/read');
-const defaultFunctionConfig = require('@architect/inventory/src/defaults/function-config');
 const { join } = require('path');
 const { toLogicalID } = require('@architect/utils');
+const { paramCase: dashCasify } = require('param-case');
 
-const triggers = [ 'CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse' ];
-const standardAttributes = [ 'address', 'birthdate', 'email', 'family_name', 'gender', 'given_name', 'locale', 'middle_name', 'name', 'nickname', 'phone_number', 'picture', 'preferred_username', 'profile', 'zone_info', 'updated_at', 'website' ];
+const TRIGGER_NAMES = [ 'CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse' ];
 
-module.exports = async function CognitoUserPoolMacro (arc, sam, stage='staging', inventory) {
-    if (arc.cognito) {
+function getPoolLabel (arc) {
+    return `${arc.app[0]}-pool`;
+}
+
+module.exports = {
+    variables: function ({ arc }) {
+        if (!arc.cognito) return {};
+        const poolLabel = getPoolLabel(arc);
+        const name = toLogicalID(poolLabel);
+        return {
+            cognitoPoolId: { Ref: name },
+            cognitoPoolProviderURL: { 'Fn::GetAtt': [ name, 'ProviderURL' ] }
+        };
+    },
+    functions: function ({ arc, inventory }) {
+        if (!arc.cognito) return [];
         const cwd = inventory.inv._project.src;
-        arc.cognito.forEach(cog => {
-            // TODO consider possible types for `cog`: object if sub-props are passed to each user pool or a string if a single pool with no props
-            let poolLabel = Object.keys(cog)[0];
-            let name = toLogicalID(poolLabel);
-            let opts = cog[poolLabel];
-            console.log(opts);
-            let defn = {
-                Type: 'AWS::Cognito::UserPool',
-                Properties: {
-                    UserPoolName: poolLabel
-                }
-            };
-            // First lets create Lambdas for Cognito triggers, if present
-            triggers.forEach(t => {
-                if (t in opts) {
-                    let code = join(cwd, 'src', 'cognito-user-pool', `${poolLabel}-${t}`);
-                    let functionConfig = getFunctionConfig(code);
-                    let functionDefn = createLambda({
-                        inventory,
-                        lambda: {
-                            src: code,
-                            config: functionConfig
-                        }
-                    });
-                    let label = triggerName(poolLabel, t);
-                    let name = `${label}MacroLambda`;
-                    sam.Resources[name] = functionDefn;
-                    if (!defn.Properties.LambdaConfig) defn.Properties.LambdaConfig = {};
-                    defn.Properties.LambdaConfig[t] = { "Fn::GetAtt" : [ name, "Arn" ] }
-                }
-            });
-            if (opts.RecoveryOptions) {
-                let recovery = arrayify(opts.RecoveryOptions);
-                defn.Properties.AccountRecoverySetting = {
-                    RecoveryMechanism: recovery.map((m, i) => ({ Name: m, Priority: i + 1 }))
-                };
-            }
-            if (typeof opts.AllowAdminCreateUserOnly !== 'undefined') {
-                defn.Properties.AdminCreateUserConfig = {
-                    AllowAdminCreateUserOnly: !!(opts.AllowAdminCreateUserOnly)
-                };
-            }
-            if (opts.AutoVerifiedAttributes) {
-                let autoverify = arrayify(opts.AutoVerifiedAttributes);
-                defn.Properties.AutoVerifiedAttributes = autoverify;
-            }
-            if (opts.SESARN) {
-                defn.Properties.EmailConfiguration = {
-                    EmailSendingAccount: 'DEVELOPER',
-                    SourceArn: opts.SESARN
-                };
-                if (opts.FromEmail) {
-                    defn.Properties.EmailConfiguration.From = opts.FromEmail;
-                }
-            }
-            if (opts.StandardAttributes) {
-                let attrs = arrayify(opts.StandardAttributes);
-                if (!defn.Properties.Schema) defn.Properties.Schema = [];
-                defn.Properties.Schema = defn.Properties.Schema.concat(attrs.map(a => ({
-                    Mutable: false,
-                    Required: true,
-                    Name: a
-                })));
-            }
-            if (opts.UsernameAttributes) {
-                let attrs = arrayify(opts.UsernameAttributes);
-                defn.Properties.UsernameAttributes = attrs;
-            }
-            if (typeof opts.UsernameCaseSensitive !== 'undefined') {
-                defn.Properties.UsernameConfiguration = {
-                    CaseSensitive: !!(opts.UsernameCaseSensitive)
-                };
-            }
-            // Custom attribute support requires us to inspect the property keys
-            // to see if they start with a particular string
-            let keys = Object.keys(opts);
-            let customAttrs = keys.filter(k => k.indexOf('CustomAttribute:') === 0);
-            if (customAttrs.length) {
-                if (!defn.Properties.Schema) defn.Properties.Schema = [];
-                defn.Properties.Schema = defn.Properties.Schema.concat(customAttrs.map(c => {
-                    let Name = c.split('CustomAttribute:').join('');
-                    let attrs = opts[c];
-                    let type = attrs[0];
-                    let min = attrs[1];
-                    let max = attrs[2];
-                    let Mutable = attrs[3];
-                    let attr = {
-                        AttributeDataType: type,
-                        Mutable,
-                        Name,
-                    };
-                    // for some reason the string/number constraint parameters,
-                    // which are all numbers, need to be defined as strings?
-                    // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-stringattributeconstraints.html
-                    // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-numberattributeconstraints.html
-                    if (type === 'Number') {
-                        attr.NumberAttributeConstraints = {
-                            MinValue: '' + min,
-                            MaxValue: '' + max
-                        };
-                    } else if (type === 'String') {
-                        attr.StringAttributeConstraints = {
-                            MinLength: '' + min,
-                            MaxLength: '' + max
-                        };
-                    }
-                    return attr;
-                }));
-            }
-            console.log(name, JSON.stringify(defn, null, 2));
-            sam.Resources[name] = defn;
-        });
-    }
-    // console.log(JSON.stringify(sam, null, 2));
-    return sam;
-};
-
-module.exports.create = function CognitoCreate (inventory) {
-    const cwd = inventory.inv._project.src;
-    const arc = inventory.inv._project.arc;
-    if (!arc.cognito) return [];
-    return arc.cognito.map(pool => {
-        let poolLabel = Object.keys(pool)[0];
-        let opts = pool[poolLabel];
+        let opts = arc.cognito;
         let poolLambdas = [];
-        triggers.forEach(t => {
-            if (t in opts) {
-                let code = join(cwd, 'src', 'cognito-user-pool', `${poolLabel}-${t}`);
-                let name = triggerName(poolLabel, t);
-                let functionConfig = getFunctionConfig(code);
+        TRIGGER_NAMES.forEach(trigger => {
+            if (opts.includes(trigger)) {
+                let src = join(cwd, 'src', 'cognito', dashCasify(trigger));
                 poolLambdas.push({
-                  src: code,
-                  config: functionConfig,
-                  name,
-                  body: `exports.handler = async function (event) {
+                    src,
+                    body: `exports.handler = async function (event) {
     console.log(event);
     return event;
 };`
@@ -152,27 +36,114 @@ module.exports.create = function CognitoCreate (inventory) {
             }
         });
         return poolLambdas;
-    }).flat();
-};
+    },
+    package: function ({ arc, cloudformation: sam, inventory, createFunction }) {
+        if (!arc.cognito) return sam;
+        const poolLabel = getPoolLabel(arc);
+        const name = toLogicalID(poolLabel);
+        let opts = arc.cognito;
 
-function arrayify(obj) {
-    return obj instanceof Array ? obj : [obj];
-}
+        function getOption (opt) {
+            return opts.find(o => (Array.isArray(o) && o[0] === opt) || (typeof o === 'string' && o === opt));
+        }
 
-// compile any per-function config.arc customizations
-function getFunctionConfig (dir) {
-    // compile any per-function config.arc customizations
-    let defaults = defaultFunctionConfig();
-    let existingConfig = read({ type: 'functionConfig', cwd: dir });
-    let customizations = [];
-    if (existingConfig.arc) customizations = existingConfig.arc.aws || [];
-    let overrides = {};
-    for (let config of customizations) {
-        overrides[config[0]] = config[1];
+        console.log(opts);
+        let pool = {
+            Type: 'AWS::Cognito::UserPool',
+            Properties: {
+                UserPoolName: poolLabel
+            }
+        };
+        // create Lambdas for Cognito triggers, if present
+        module.exports.functions({ arc, inventory }).forEach(trigger => {
+            let [ functionName, functionDefn ] = createFunction({ inventory, src: trigger.src });
+            sam.Resources[functionName] = functionDefn;
+        });
+        const recovery = getOption('RecoveryOptions');
+        if (recovery) {
+            pool.Properties.AccountRecoverySetting = {
+                RecoveryMechanisms: recovery.slice(1).map((m, i) => ({ Name: m, Priority: i + 1 }))
+            };
+        }
+        const adminOnly = getOption('AllowAdminCreateUserOnly');
+        if (adminOnly) {
+            pool.Properties.AdminCreateUserConfig = {
+                AllowAdminCreateUserOnly: Array.isArray(adminOnly) ? adminOnly[1] : true
+            };
+        }
+        const autoVerifiedAttrs = getOption('AutoVerifiedAttributes');
+        if (autoVerifiedAttrs) {
+            pool.Properties.AutoVerifiedAttributes = autoVerifiedAttrs.slice(1);
+        }
+        const sesArn = getOption('SESARN');
+        if (sesArn) {
+            pool.Properties.EmailConfiguration = {
+                EmailSendingAccount: 'DEVELOPER',
+                SourceArn: sesArn[1]
+            };
+            const fromEmail = getOption('FromEmail');
+            if (fromEmail) {
+                pool.Properties.EmailConfiguration.From = fromEmail[1];
+            }
+        }
+        const stdAttrs = getOption('StandardAttributes');
+        if (stdAttrs) {
+            let attrs = stdAttrs.slice(1);
+            if (!pool.Properties.Schema) pool.Properties.Schema = [];
+            pool.Properties.Schema = pool.Properties.Schema.concat(attrs.map(a => ({
+                Mutable: false,
+                Required: true,
+                Name: a
+            })));
+        }
+        const usernameAttrs = getOption('UsernameAttributes');
+        if (usernameAttrs) {
+            pool.Properties.UsernameAttributes = usernameAttrs.slice(1);
+        }
+        const usernameCase = getOption('UsernameCaseSensitive');
+        if (usernameCase) {
+            pool.Properties.UsernameConfiguration = {
+                CaseSensitive: Array.isArray(usernameCase) ? usernameCase[1] : true
+            };
+        }
+        // Custom attribute support requires us to inspect the property keys
+        // to see if they start with a particular string
+        let customAttrs = opts.filter(k => Array.isArray(k) && k[0].indexOf('CustomAttribute:') === 0);
+        if (customAttrs.length) {
+            if (!pool.Properties.Schema) pool.Properties.Schema = [];
+            pool.Properties.Schema = pool.Properties.Schema.concat(customAttrs.map(c => {
+                let Name = c[0].split('CustomAttribute:').join('');
+                let attrs = c.slice(1);
+                let type = attrs[0];
+                // for some reason the string/number constraint parameters, which are all numbers, need to be defined as strings?
+                // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-stringattributeconstraints.html
+                // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cognito-userpool-numberattributeconstraints.html
+                const min = '' + attrs[1];
+                const max = '' + attrs[2];
+                let constraint = {
+                    MinValue: min,
+                    MaxValue: max
+                };
+                if (type === 'String') {
+                    constraint = {
+                        MinLength: min,
+                        MaxLength: max
+                    };
+                }
+                let Mutable = attrs[3];
+                let attr = {
+                    AttributeDataType: type,
+                    Mutable,
+                    Name,
+                };
+                let constraintName = type === 'Number' ? 'NumberAttributeConstraints' : 'StringAttributeConstraints';
+                attr[constraintName] = constraint;
+                return attr;
+            }));
+        }
+        console.log(name, JSON.stringify(pool, null, 2));
+        sam.Resources[name] = pool;
+        // console.log(JSON.stringify(sam, null, 2));
+        return sam;
     }
-    return { ...defaults, ...overrides };
-}
-
-function triggerName(pool, trigger) {
-    return toLogicalID(`${pool}-${trigger}`);
-}
+};

@@ -1,10 +1,10 @@
 {
-  "name": "macro-cognito-user-pool-demo",
+  "name": "plugin-cognito-demo",
   "version": "1.0.0",
   "description": "",
   "main": "test.js",
   "dependencies": {
-    "@architect/architect": "github:copperinc/architect#plugins"
+    "@architect/architect": "8.6.0-RC.0"
   },
   "devDependencies": {},
   "scripts": {
