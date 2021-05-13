@@ -5,6 +5,14 @@
 This macro enables your [arc.codes](arc.codes) app to define a [Cognito User
 Pool](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html), which is a user directory managed by AWS. AWS handles the complexity of storing user credentials, providing password reset flows, and even managing multi-factor authentication. It also provides [Lambda triggers](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html), allowing certain events happening within your User Pool to trigger serverless function invocations.
 
+## Requirements
+
+This plugin relies on a minimum [`@architect/architect`](https://www.npmjs.com/package/@architect/architect)
+version of 8.6.0-RC.0. If you wish to use the runtime capabilities to interact with
+the User Pool from within your various Lambdas, then you will also need to use at
+least [`@architect/functions`](https://www.npmjs.com/package/@architect/functions)
+version 3.13.12-RC.0 or newer.
+
 ## Installation
 
 1. Run: `npm i @copper/plugin-cognito`
