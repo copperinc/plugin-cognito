@@ -53,5 +53,8 @@
         "always"
       ]
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
