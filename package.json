@@ -28,17 +28,19 @@
   },
   "homepage": "https://github.com/copperinc/plugin-cognito#readme",
   "dependencies": {
-    "@architect/inventory": "^1.3.3-RC.0",
-    "@architect/package": "^6.2.1-RC.0",
     "@architect/utils": "^2.0.5",
     "param-case": "^3.0.4"
   },
   "devDependencies": {
     "@architect/eslint-config": "^1.0.0",
+    "@architect/inventory": "^1.3.3-RC.0",
     "@architect/package": "^6.2.1-RC.0",
     "eslint": "^7.26.0",
     "fs-extra": "^10.0.0",
     "jasmine": "^3.7.0"
+  },
+  "peerDependencies": {
+    "@architect/architect": "^8.6.0-RC.0"
   },
   "eslintConfig": {
     "extends": "@architect/eslint-config",
