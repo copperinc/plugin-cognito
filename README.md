@@ -48,6 +48,36 @@ template](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-res
 |`UsernameAttributes`|Determines whether email addresses or phone numbers can be specified as user names when a user signs up. Possible values are `phone_number` or `email`, and either or both can be provided.|`UsernameAttributes email`|
 |`UsernameCaseSensitive`|Specifies whether username case sensitivity will be applied for all users in the user pool through Cognito APIs.|`UsernameCaseSensitive false`|
 
+## Runtime Use
+
+Once your arc application is deployed to AWS, you can interact with the Cognito
+User Pool from inside your various Lambda functions by retrieving the User Pool
+ID and Provider URL via the [`@architect/functions`](https://www.npmjs.com/package/@architect/functions)
+package (note: must be version 3.13.12-RC.1 or newer!). These variables can then
+be used in conjunction with the AWS SDK to interact with the User Pool.
+
+The following snippet demonstrates what this would look like in a typical arc
+lambda function:
+
+```
+let arc = require('@architect/functions');
+
+exports.handler = arc.http.async(async function http () {
+    let services = await arc.services();
+    console.log(services.copper['plugin-cognito']);
+    /* prints out e.g.:
+     * {
+     *   "cognitoPoolId": "us-west-2_y1QH6IeAK",
+     *   "cognitoPoolProviderURL": "https://cognito-idp.us-west-2.amazonaws.com/us-west-2_y1QH6IeAK"
+     * }
+     * ... rest of lambda function code ...
+     */
+});
+```
+
+For a live example, check out the included sample application, and specifically the
+`src/http/get-index/index.js` file.
+
 ## Sample Application
 
 There is a sample application located under `sample-app/`. `cd` into that
