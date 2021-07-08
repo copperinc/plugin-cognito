@@ -27,6 +27,7 @@ module.exports = {
             if (opts.includes(trigger)) {
                 let src = join(cwd, 'src', 'cognito', dashCasify(trigger));
                 poolLambdas.push({
+                    name: trigger,
                     src,
                     body: `exports.handler = function (event) {
     console.log(event);
@@ -53,11 +54,17 @@ module.exports = {
                 UserPoolName: poolLabel
             }
         };
-        // create Lambdas for Cognito triggers, if present
-        module.exports.functions({ arc, inventory }).forEach(trigger => {
-            let [ functionName, functionDefn ] = createFunction({ inventory, src: trigger.src });
-            sam.Resources[functionName] = functionDefn;
-        });
+        const functions = module.exports.functions({ arc, inventory });
+        if (functions.length) {
+            pool.Properties.LambdaConfig = {};
+            functions.forEach(trigger => {
+                let [ functionName, functionDefn ] = createFunction({ inventory, src: trigger.src });
+                sam.Resources[functionName] = functionDefn;
+                pool.Properties.LambdaConfig[trigger.name] = {
+                    'Fn::GetAtt': [ functionName, 'Arn' ]
+                };
+            });
+        }
         const recovery = getOption('RecoveryOptions');
         if (recovery) {
             pool.Properties.AccountRecoverySetting = {
