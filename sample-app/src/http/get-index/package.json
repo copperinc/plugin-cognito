@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@architect/functions": "^3.13.12-RC.1"
+    "@architect/functions": "^3.14.0"
   }
 }
