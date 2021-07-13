@@ -4,8 +4,8 @@ const { paramCase: dashCasify } = require('param-case');
 
 const TRIGGER_NAMES = [ 'CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse' ];
 
-function getPoolLabel (arc) {
-    return `${arc.app[0]}-user-pool`;
+function getPoolLabel (arc, stage) {
+    return `${arc.app[0]}-${stage}-user-pool`;
 }
 
 module.exports = {
@@ -38,9 +38,9 @@ module.exports = {
         });
         return poolLambdas;
     },
-    package: function ({ arc, cloudformation: sam, inventory, createFunction }) {
+    package: function ({ arc, cloudformation: sam, inventory, stage, createFunction }) {
         if (!arc.cognito) return sam;
-        const poolLabel = getPoolLabel(arc);
+        const poolLabel = getPoolLabel(arc, stage);
         const name = toLogicalID(poolLabel);
         let opts = arc.cognito;
 
