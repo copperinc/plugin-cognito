@@ -9,9 +9,9 @@ function getPoolLabel (arc, stage) {
 }
 
 module.exports = {
-    variables: function ({ arc }) {
+    variables: function ({ arc, stage }) {
         if (!arc.cognito) return {};
-        const poolLabel = getPoolLabel(arc);
+        const poolLabel = getPoolLabel(arc, stage);
         const name = toLogicalID(poolLabel);
         return {
             cognitoPoolId: { Ref: name },

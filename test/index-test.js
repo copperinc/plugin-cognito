@@ -49,5 +49,23 @@ describe('plugin packaging function', () => {
             expect(output.Resources.CognitoCustomMessagePluginLambda).toBeDefined();
             expect(output.Resources.CognitoCustomMessagePluginLambda.Type).toEqual('AWS::Serverless::Function');
         });
+        it('should create SSM Parameters exposing Cognito user pool ID and provider URL', () => {
+            const cloudformation = {
+                Resources: {
+                    Role: {
+                        Properties: {
+                            Policies: []
+                        }
+                    }
+                }
+            };
+            const app = { ...arc };
+            const intermediary = plugin.package({ arc: app, cloudformation, createFunction, inventory: inv, stage: 'staging' });
+            const output = plugin.variables({ arc: app, cloudformation: intermediary, createFunction, inventory: inv, stage: 'staging' });
+            expect(output.cognitoPoolProviderURL).toBeDefined();
+            expect(output.cognitoPoolProviderURL['Fn::GetAtt'][0]).toEqual('PluginCognitoDemoStagingUserPool');
+            expect(output.cognitoPoolId).toBeDefined();
+            expect(output.cognitoPoolId.Ref).toEqual('PluginCognitoDemoStagingUserPool');
+        });
     });
 });
