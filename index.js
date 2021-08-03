@@ -5,7 +5,8 @@ const { paramCase: dashCasify } = require('param-case');
 const TRIGGER_NAMES = [ 'CreateAuthChallenge', 'CustomMessage', 'DefineAuthChallenge', 'PostAuthentication', 'PostConfirmation', 'PreAuthentication', 'PreSignUp', 'PreTokenGeneration', 'UserMigration', 'VerifyAuthChallengeResponse' ];
 
 function getPoolLabel (arc, stage) {
-    return `${arc.app[0]}-${stage}-user-pool`;
+    return arc.app[0].charAt(0).toUpperCase() + arc.app[0].substr(1) +
+        stage.charAt(0).toUpperCase() + stage.substr(1) + '-UserPool';
 }
 
 module.exports = {
